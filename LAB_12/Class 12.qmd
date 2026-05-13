@@ -9,12 +9,7 @@ editor: visual
 
 In this class session we will:
 
-Open a new RStudio Project and Quarto document for today’s class;
-Review how to install both Bioconductor and CRAN packages;
-Explore the Himes et al. gene expression data using base R, dplyr and ggplot2 package functions;
-Perform a detailed differential gene expression analysis with the DESeq2 package.
-Render a reproducible PDF report of your work with answers to all questions below.
-
+Open a new RStudio Project and Quarto document for today’s class; Review how to install both Bioconductor and CRAN packages; Explore the Himes et al. gene expression data using base R, dplyr and ggplot2 package functions; Perform a detailed differential gene expression analysis with the DESeq2 package. Render a reproducible PDF report of your work with answers to all questions below.
 
 ## 2. Bioconductor setup
 
@@ -59,6 +54,7 @@ control.counts <- counts[ ,control$id]
 control.mean <- rowSums( control.counts )/4 
 head(control.mean)
 ```
+
 ```{r}
 library(dplyr)
 control <- metadata %>% filter(dex=="control")
@@ -66,6 +62,7 @@ control.counts <- counts %>% select(control$id)
 control.mean <- rowSums(control.counts)/4
 head(control.mean)
 ```
+
 > **Q3. How would you make the above code in either approach more robust? Is there a function that could help here?**
 
 > **Answer:** We can use rowSums(). This makes the code more generalizable if the number of control samples ever changes.
@@ -84,7 +81,6 @@ treated.counts <- counts[, treated$id]
 treated.mean <- rowMeans(treated.counts)
 ```
 
-
 ```{r}
 meancounts <- data.frame(control.mean, treated.mean)
 colSums(meancounts)
@@ -98,7 +94,8 @@ colSums(meancounts)
 plot(meancounts[,1], meancounts[,2],
      xlab = "Control Mean", ylab = "Treated Mean")
 ```
-> **Q5 (b).You could also use the ggplot2 package to make this figure producing the plot below. What geom_?() function would you use for this plot?**
+
+> **Q5 (b).You could also use the ggplot2 package to make this figure producing the plot below. What geom\_?() function would you use for this plot?**
 
 > **Answer:** geom_point() — since this is a scatter plot comparing two continuous variables (control mean vs treated mean), each gene is represented as a single point.
 
@@ -154,7 +151,6 @@ down.ind <- mycounts$log2fc < (-2)
 ```{r}
 sum(up.ind)
 ```
-
 
 > **Q9. Using the down.ind vector above can you determine how many down regulated genes we have at the greater than 2 fc level?**
 
@@ -247,13 +243,14 @@ res$symbol <- mapIds(org.Hs.eg.db,
                      column="SYMBOL",          # The new format we want to add
                      multiVals="first")
 ```
+
 ```{r}
 head(res)
 ```
 
-> **Q11. Run the mapIds() function two more times to add the Entrez ID and UniProt accession and GENENAME as new columns called res$entrez, res$uniprot and res$genename.**
+> **Q11. Run the mapIds() function two more times to add the Entrez ID and UniProt accession and GENENAME as new columns called res**$entrez, res$uniprot and res\$genename.
 
-> **Answer:** 
+> **Answer:**
 
 ```{r}
 res$entrez <- mapIds(org.Hs.eg.db,
@@ -324,9 +321,11 @@ abline(h=-log(0.1), col="gray", lty=2)
 ```{r}
 BiocManager::install("EnhancedVolcano")
 ```
+
 ```{r}
 library(EnhancedVolcano)
 ```
+
 ```{r}
 x <- as.data.frame(res)
 
@@ -356,7 +355,7 @@ pathview(gene.data = foldchanges, pathway.id = "hsa05310")
 
 > **Q12. Can you do the same procedure as above to plot the pathview figures for the top 2 down-reguled pathways?**
 
-> **Answer:** Yes. From head(keggres$less, 3), the top two downregulated pathways are Graft-versus-host disease (hsa05332) and Type I diabetes mellitus (hsa04940). We can visualize these using the same pathview() call with the corresponding pathway IDs, which downloads the KEGG pathway diagram and overlays our fold change data to show which genes in each pathway are up or downregulated in response to dexamethasone treatment.
+> **Answer:** Yes. From head(keggres\$less, 3), the top two downregulated pathways are Graft-versus-host disease (hsa05332) and Type I diabetes mellitus (hsa04940). We can visualize these using the same pathview() call with the corresponding pathway IDs, which downloads the KEGG pathway diagram and overlays our fold change data to show which genes in each pathway are up or downregulated in response to dexamethasone treatment.
 
 ```{r}
 pathview(gene.data = foldchanges, pathway.id = "hsa05332")
@@ -383,4 +382,3 @@ ggplot(d, aes(dex, count, fill = dex)) +
 ```{r}
 sessionInfo()
 ```
-
