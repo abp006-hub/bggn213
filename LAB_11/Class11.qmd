@@ -5,7 +5,7 @@ format: pdf
 editor: visual
 ---
 
-## Overview
+## Overview 
 
 In this lab, we used AlphaFold2 via ColabFold to predict the structure of HIV Protease (HIV-Pr), first as a monomer and then as a homodimer. We analyzed the resulting models using Bio3D in R, examining structural consistency, confidence scores (pLDDT), predicted aligned error (PAE), and residue conservation.
 
