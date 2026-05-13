@@ -7,7 +7,7 @@ editor: visual
 
 ## 1. Background
 
-In this class session we will:
+For this class session we will:
 
 Open a new RStudio Project and Quarto document for today’s class; Review how to install both Bioconductor and CRAN packages; Explore the Himes et al. gene expression data using base R, dplyr and ggplot2 package functions; Perform a detailed differential gene expression analysis with the DESeq2 package. Render a reproducible PDF report of your work with answers to all questions below.
 
