@@ -67,6 +67,7 @@ res <- results(dds)
 ```{r}
 summary(res)
 ```
+
 At the default adjusted p-value cutoff of 0.1, there are 4,351 upregulated genes (28%) and 4,399 downregulated genes (29%).
 
 ------------------------------------------------------------------------
@@ -133,7 +134,6 @@ res$name <- mapIds(org.Hs.eg.db,
 head(res, 10)
 ```
 
-
 ### Q. Finally for this section let's reorder these results by adjusted p-value and save them to a CSV file in your current project directory.
 
 ```{r}
@@ -169,6 +169,7 @@ head(foldchanges)
 ```{r}
 keggres <- gage(foldchanges, gsets = kegg.sets.hs)
 ```
+
 ```{r}
 attributes(keggres)
 ```
@@ -181,7 +182,6 @@ head(keggres$less)
 ```
 
 The top downregulated pathway is Cell cycle (hsa04110), which makes sense since HOXA1 loss disrupts cell cycle progression.
-
 
 ### Pathview for Cell Cycle
 
@@ -280,4 +280,3 @@ The most significant pathway is typically a mitotic cell cycle or cell division 
 ```{r}
 sessionInfo()
 ```
-
