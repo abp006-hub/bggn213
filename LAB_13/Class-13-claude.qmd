@@ -1,0 +1,262 @@
+---
+title: "Class 14: Pathway Analysis from RNA-Seq Results"
+author: "Abigail Perez"
+format: pdf
+---
+
+## Overview
+
+Pathway analysis maps differentially expressed genes to known biological pathways, helping us interpret large gene lists and gain insight into the molecular mechanisms underlying a condition.
+
+---
+
+## Section 1. Differential Expression Analysis
+
+### Setup
+
+```{r}
+#| message: false
+#| warning: false
+library(DESeq2)
+library(ggplot2)
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+```
+
+### Load Data
+
+```{r}
+colData <- read.csv("GSE37704_metadata.csv", row.names = 1)
+head(colData)
+
+countData <- read.csv("GSE37704_featurecounts.csv", row.names = 1)
+head(countData)
+```
+
+### Q. Remove the troublesome first column from countData
+
+The first column (`length`) contains gene length information, not counts, so we remove it with `-1`.
+
+```{r}
+countData <- as.matrix(countData[, -1])
+head(countData)
+```
+
+### Q. Filter out genes with zero read counts across all samples
+
+`rowSums()` adds counts across all samples per gene. Genes with a sum of zero have no data and are removed.
+
+```{r}
+countData <- countData[rowSums(countData) > 0, ]
+head(countData)
+```
+
+### Run DESeq2
+
+```{r}
+#| message: false
+#| warning: false
+dds <- DESeqDataSetFromMatrix(countData = countData,
+                              colData = colData,
+                              design = ~condition)
+dds <- DESeq(dds)
+dds
+```
+
+### Get Results
+
+```{r}
+res <- results(dds)
+```
+
+### Q. Call summary() to see how many genes are up or down-regulated
+
+```{r}
+summary(res)
+```
+
+At the default adjusted p-value cutoff of 0.1, there are 4,351 upregulated genes (28%) and 4,399 downregulated genes (29%).
+
+---
+
+## Volcano Plot
+
+### Basic Plot
+
+```{r}
+ggplot(as.data.frame(res)) +
+  aes(x = log2FoldChange, y = -log10(pvalue)) +
+  geom_point(alpha = 0.4)
+```
+
+### Q. Improved plot with color, axis labels, and cutoff lines
+
+Blue points have an absolute log2 fold change greater than 2 and an adjusted p-value below 0.01, indicating the most significantly differentially expressed genes.
+
+```{r}
+#| warning: false
+mycols <- rep("gray", nrow(res))
+mycols[abs(res$log2FoldChange) > 2] <- "blue"
+mycols[res$padj > 0.01] <- "gray"
+
+ggplot(as.data.frame(res)) +
+  aes(x = log2FoldChange, y = -log10(pvalue)) +
+  geom_point(color = mycols, alpha = 0.5) +
+  xlab("Log2(FoldChange)") +
+  ylab("-Log(P-value)") +
+  geom_vline(xintercept = c(-2, 2), linetype = "dashed", color = "darkgray") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed", color = "darkgray") +
+  theme_bw()
+```
+
+---
+
+## Adding Gene Annotation
+
+### Q. Add SYMBOL, ENTREZID, and GENENAME using mapIds()
+
+```{r}
+#| message: false
+#| warning: false
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys = row.names(res),
+                     keytype = "ENSEMBL",
+                     column = "SYMBOL",
+                     multiVals = "first")
+
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys = row.names(res),
+                     keytype = "ENSEMBL",
+                     column = "ENTREZID",
+                     multiVals = "first")
+
+res$name <- mapIds(org.Hs.eg.db,
+                   keys = row.names(res),
+                   keytype = "ENSEMBL",
+                   column = "GENENAME",
+                   multiVals = "first")
+
+head(res, 10)
+```
+
+### Q. Reorder by p-value and save to CSV
+
+```{r}
+res <- res[order(res$pvalue), ]
+write.csv(res, file = "deseq_results.csv")
+```
+
+---
+
+## Section 2. Pathway Analysis
+
+```{r}
+#| message: false
+#| warning: false
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs <- kegg.sets.hs[sigmet.idx.hs]
+head(kegg.sets.hs, 3)
+```
+
+### Set Up Fold Changes
+
+```{r}
+foldchanges <- res$log2FoldChange
+names(foldchanges) <- res$entrez
+head(foldchanges)
+```
+
+### Run GAGE Pathway Analysis
+
+```{r}
+keggres <- gage(foldchanges, gsets = kegg.sets.hs)
+attributes(keggres)
+```
+
+### Top Downregulated Pathways
+
+```{r}
+head(keggres$less)
+```
+
+The top downregulated pathway is Cell cycle (hsa04110), which makes sense since HOXA1 loss disrupts cell cycle progression.
+
+### Pathview for Cell Cycle
+
+```{r}
+#| eval: false
+pathview(gene.data = foldchanges, pathway.id = "hsa04110")
+pathview(gene.data = foldchanges, pathway.id = "hsa04110", kegg.native = FALSE)
+```
+
+### Top 5 Upregulated Pathways
+
+```{r}
+#| eval: false
+keggrespathways <- rownames(keggres$greater)[1:5]
+keggresids <- substr(keggrespathways, start = 1, stop = 8)
+keggresids
+
+pathview(gene.data = foldchanges, pathway.id = keggresids, species = "hsa")
+```
+
+### Q. Top 5 Downregulated Pathways
+
+```{r}
+#| eval: false
+keggrespathways_down <- rownames(keggres$less)[1:5]
+keggresids_down <- substr(keggrespathways_down, start = 1, stop = 8)
+keggresids_down
+
+pathview(gene.data = foldchanges, pathway.id = keggresids_down, species = "hsa")
+```
+
+---
+
+## Section 3. Gene Ontology (GO)
+
+```{r}
+data(go.sets.hs)
+data(go.subs.hs)
+
+# Focus on Biological Process subset
+gobpsets <- go.sets.hs[go.subs.hs$BP]
+gobpres <- gage(foldchanges, gsets = gobpsets)
+
+lapply(gobpres, head)
+```
+
+---
+
+## Section 4. Reactome Analysis
+
+### Export Significant Genes
+
+```{r}
+sig_genes <- res[res$padj <= 0.05 & !is.na(res$padj), "symbol"]
+print(paste("Total number of significant genes:", length(sig_genes)))
+
+write.table(sig_genes, file = "significant_genes.txt",
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+Upload `significant_genes.txt` to https://reactome.org/PathwayBrowser/#TOOL=AT, select "Project to Humans," and click Analyze.
+
+### Q. What pathway has the most significant Entities p-value? Do results match KEGG? What factors could cause differences?
+
+The most significant pathway is typically a mitotic cell cycle or cell division process, which aligns with KEGG's top result of Cell cycle (hsa04110). Differences between methods arise because KEGG and Reactome use different pathway definitions and curation standards, so the same biological process may be split into sub-pathways or grouped differently depending on the database.
+
+---
+
+## Session Information
+
+```{r}
+sessionInfo()
+```
